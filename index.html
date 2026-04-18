@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <title>💰 Banii Mei</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; }
+        .app-container { max-width: 600px; margin: 0 auto; background: #fff; min-height: 100vh; box-shadow: 0 0 40px rgba(0,0,0,0.2); }
+        .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 20px; position: sticky; top: 0; z-index: 100; }
+        .header h1 { font-size: 28px; font-weight: 700; margin-bottom: 15px; }
+        .balance-card { background: rgba(255,255,255,0.15); border-radius: 16px; padding: 16px; margin-top: 10px; }
+        .balance-row { display: flex; justify-content: space-between; margin-bottom: 10px; }
+        .tabs { display: flex; background: #f5f5f5; padding: 5px; gap: 5px; position: sticky; top: 160px; z-index: 90; }
+        .tab { flex: 1; padding: 12px 8px; border: none; background: transparent; font-size: 14px; font-weight: 600; color: #666; border-radius: 8px; cursor: pointer; }
+        .tab.active { background: white; color: #667eea; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+        .content { padding: 20px; }
+        .section { display: none; }
+        .section.active { display: block; }
+        .quick-btn { padding: 20px; border: none; border-radius: 12px; font-size: 18px; font-weight: 600; cursor: pointer; color: white; }
+        .quick-btn.income { background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%); }
+        .quick-btn.expense { background: linear-gradient(135deg, #eb3349 0%, #f45c43 100%); }
+        .add-subscription-btn { width: 100%; padding: 16px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; border-radius: 12px; font-size: 16px; font-weight: 700; cursor: pointer; margin-bottom: 20px; }
+        .modal { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 1000; }
+        .modal.active { display: flex; align-items: flex-end; }
+        .modal-content { background: white; width: 100%; max-width: 600px; border-radius: 20px 20px 0 0; padding: 24px; max-height: 85vh; overflow-y: auto; }
+        .form-input { width: 100%; padding: 14px; border: 2px solid #e0e0e0; border-radius: 10px; font-size: 16px; }
+        .category-btn { padding: 12px; border: 2px solid #e0e0e0; background: white; border-radius: 10px; font-size: 14px; font-weight: 600; cursor: pointer; }
+        .category-btn.selected { border-color: #667eea; background: #667eea; color: white; }
+        .subscription-card { background: white; border: 1px solid #e0e0e0; border-radius: 12px; padding: 16px; margin-bottom: 12px; }
+        .empty-state { text-align: center; padding: 40px 20px; color: #999; }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <div class="header">
+            <h1>💰 Banii Mei</h1>
+            <div class="balance-card">
+                <div class="balance-row">
+                    <span>Cash Personal</span>
+                    <span id="cashBalance">0.00 RON</span>
+                </div>
+                <div class="balance-row">
+                    <span>Cont Firmă</span>
+                    <span id="firmaBalance">0.00 RON</span>
+                </div>
+                <div class="balance-row">
+                    <span>TOTAL</span>
+                    <span id="totalBalance">0.00 RON</span>
+                </div>
+                <button onclick="openEditBalance()" style="background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.3); color: white; padding: 8px 16px; border-radius: 8px; font-size: 13px; cursor: pointer; margin-top: 10px;">✏️ Editează Sold-uri</button>
+            </div>
+        </div>
+        
+        <div class="tabs">
+            <button class="tab active" onclick="switchTab('home')">Acasă</button>
+            <button class="tab" onclick="switchTab('transactions')">Istoric</button>
+            <button class="tab" onclick="switchTab('subscriptions')">Abonamente</button>
+            <button class="tab" onclick="switchTab('stats')">Statistici</button>
+        </div>
+        
+        <div class="content">
+            <div id="home" class="section active">
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px;">
+                    <button class="quick-btn income" onclick="openModal('income')">➕ Venit</button>
+                    <button class="quick-btn expense" onclick="openModal('expense')">➖ Cheltuială</button>
+                </div>
+                <h3>Reminder-uri</h3>
+                <div id="reminders"></div>
+            </div>
+            
+            <div id="transactions" class="section">
+                <h3>Istoric Tranzacții</h3>
+                <div id="transactionsList"></div>
+            </div>
+            
+            <div id="subscriptions" class="section">
+                <button class="add-subscription-btn" onclick="openAddSubscription()">➕ Adaugă Abonament</button>
+                <h3>Abonamentele Tale</h3>
+                <div id="subscriptionsList"></div>
+                <h3 style="margin-top: 30px;">Istoric Plăți</h3>
+                <div id="paymentHistory"></div>
+            </div>
+            
+            <div id="stats" class="section">
+                <h3>Statistici Luna Curentă</h3>
+                <div id="totalIncome">Venituri: 0.00 RON</div>
+                <div id="totalExpenses">Cheltuieli: 0.00 RON</div>
+                <div id="monthBalance">Balanță: 0.00 RON</div>
+                <h4>Cheltuieli pe Categorii</h4>
+                <div id="categoryStats"></div>
+            </div>
+        </div>
+    </div>
+    
+    <div id="subscriptionModal" class="modal">
+        <div class="modal-content">
+            <h2 id="subscriptionModalTitle">➕ Adaugă Abonament</h2>
+            <button onclick="closeModal('subscription')" style="float: right;">×</button>
+            <form onsubmit="saveSubscription(event)">
+                <div><label>Nume:</label><input type="text" class="form-input" id="subscriptionName" required></div>
+                <div><label>Sumă:</label><input type="number" step="0.01" class="form-input" id="subscriptionAmount" required></div>
+                <div><label>Zi (1-31):</label><input type="number" min="1" max="31" class="form-input" id="subscriptionDay" required></div>
+                <div>
+                    <label>Sursă:</label>
+                    <button type="button" class="category-btn" onclick="selectSource('subscription','Cash')">Cash</button>
+                    <button type="button" class="category-btn" onclick="selectSource('subscription','Firmă')">Firmă</button>
+                </div>
+                <button type="submit" style="width: 100%; padding: 16px; background: #667eea; color: white; border: none; border-radius: 12px; margin-top: 20px;">Salvează</button>
+            </form>
+        </div>
+    </div>
+    
+    <script>
+        let data = {
+            balances: { cash: 0, firma: 0 },
+            transactions: [],
+            subscriptions: [
+                { name: 'DIGI', amount: 67.11, day: 15, source: 'Cash' },
+                { name: 'Vodafone', amount: 277.67, day: 5, source: 'Cash' },
+                { name: 'Claude', amount: 108.14, day: 1, source: 'Firmă' },
+                { name: 'Spotify', amount: 26, day: 1, source: 'Firmă' },
+                { name: 'Contabil', amount: 200, day: 25, source: 'Firmă' },
+                { name: 'Comision Bancă', amount: 40, day: 28, source: 'Firmă' }
+            ],
+            subscriptionPayments: {}
+        };
+        
+        let selectedSource = { income: '', expense: '', subscription: '' };
+        let editingSubscription = null;
+        
+        function loadData() {
+            const saved = localStorage.getItem('financialData');
+            if (saved) data = JSON.parse(saved);
+            updateUI();
+        }
+        
+        function saveData() {
+            localStorage.setItem('financialData', JSON.stringify(data));
+        }
+        
+        function updateUI() {
+            document.getElementById('cashBalance').textContent = data.balances.cash.toFixed(2) + ' RON';
+            document.getElementById('firmaBalance').textContent = data.balances.firma.toFixed(2) + ' RON';
+            document.getElementById('totalBalance').textContent = (data.balances.cash + data.balances.firma).toFixed(2) + ' RON';
+            updateReminders();
+            updateSubscriptions();
+        }
+        
+        function updateReminders() {
+            const div = document.getElementById('reminders');
+            let html = '';
+            const today = new Date();
+            
+            data.subscriptions.forEach(sub => {
+                const nextDate = getNextPaymentDate(sub.day);
+                const days = Math.floor((nextDate - today) / (1000 * 60 * 60 * 24));
+                if (days <= 7 && !isSubscriptionPaidThisMonth(sub.name)) {
+                    html += `<div class="subscription-card">
+                        <div><strong>${sub.name}</strong> - ${sub.amount.toFixed(2)} RON</div>
+                        <div>Zi: ${sub.day} | ${sub.source} | ${days} zile</div>
+                        <button onclick="markAsPaid('${sub.name}')">✓ Plătit</button>
+                    </div>`;
+                }
+            });
+            div.innerHTML = html || '<div class="empty-state">✅ Toate plătite!</div>';
+        }
+        
+        function updateSubscriptions() {
+            const div = document.getElementById('subscriptionsList');
+            if (data.subscriptions.length === 0) {
+                div.innerHTML = '<div class="empty-state">Niciun abonament</div>';
+                return;
+            }
+            let html = '';
+            data.subscriptions.forEach((sub, i) => {
+                html += `<div class="subscription-card">
+                    <div><strong>${sub.name}</strong> - ${sub.amount.toFixed(2)} RON</div>
+                    <div>Zi ${sub.day} | ${sub.source}</div>
+                    <button onclick="editSubscription(${i})">✏️</button>
+                    <button onclick="deleteSubscription(${i})">🗑️</button>
+                </div>`;
+            });
+            div.innerHTML = html;
+        }
+        
+        function getNextPaymentDate(day) {
+            const d = new Date();
+            const next = new Date(d.getFullYear(), d.getMonth(), day);
+            if (next <= d) next.setMonth(next.getMonth() + 1);
+            return next;
+        }
+        
+        function isSubscriptionPaidThisMonth(name) {
+            if (!data.subscriptionPayments[name]) return false;
+            const today = new Date();
+            return data.subscriptionPayments[name].some(d => {
+                const pd = new Date(d);
+                return pd.getMonth() === today.getMonth() && pd.getFullYear() === today.getFullYear();
+            });
+        }
+        
+        function markAsPaid(name) {
+            if (!data.subscriptionPayments[name]) data.subscriptionPayments[name] = [];
+            data.subscriptionPayments[name].push(new Date().toISOString());
+            saveData();
+            updateUI();
+            alert(`✅ ${name} marcat!`);
+        }
+        
+        function openAddSubscription() {
+            editingSubscription = null;
+            document.getElementById('subscriptionModalTitle').textContent = '➕ Adaugă Abonament';
+            document.getElementById('subscriptionName').value = '';
+            document.getElementById('subscriptionAmount').value = '';
+            document.getElementById('subscriptionDay').value = '';
+            openModal('subscription');
+        }
+        
+        function editSubscription(i) {
+            editingSubscription = i;
+            const sub = data.subscriptions[i];
+            document.getElementById('subscriptionModalTitle').textContent = '✏️ Editează';
+            document.getElementById('subscriptionName').value = sub.name;
+            document.getElementById('subscriptionAmount').value = sub.amount;
+            document.getElementById('subscriptionDay').value = sub.day;
+            selectedSource.subscription = sub.source;
+            openModal('subscription');
+        }
+        
+        function saveSubscription(e) {
+            e.preventDefault();
+            const sub = {
+                name: document.getElementById('subscriptionName').value,
+                amount: parseFloat(document.getElementById('subscriptionAmount').value),
+                day: parseInt(document.getElementById('subscriptionDay').value),
+                source: selectedSource.subscription
+            };
+            if (!sub.source) return alert('Selectează sursa!');
+            
+            if (editingSubscription !== null) {
+                data.subscriptions[editingSubscription] = sub;
+            } else {
+                data.subscriptions.push(sub);
+            }
+            saveData();
+            updateUI();
+            closeModal('subscription');
+        }
+        
+        function deleteSubscription(i) {
+            if (!confirm('Ștergi?')) return;
+            data.subscriptions.splice(i, 1);
+            saveData();
+            updateUI();
+        }
+        
+        function switchTab(tab) {
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+            event.target.classList.add('active');
+            document.getElementById(tab).classList.add('active');
+        }
+        
+        function openModal(type) {
+            document.getElementById(type + 'Modal').classList.add('active');
+        }
+        
+        function closeModal(type) {
+            document.getElementById(type + 'Modal').classList.remove('active');
+        }
+        
+        function selectSource(type, source) {
+            selectedSource[type] = source;
+            const modal = document.getElementById(type + 'Modal');
+            modal.querySelectorAll('.category-btn').forEach(btn => {
+                btn.classList.toggle('selected', btn.textContent === source);
+            });
+        }
+        
+        function openEditBalance() {
+            const cash = prompt('Cash Personal (RON):', data.balances.cash);
+            const firma = prompt('Cont Firmă (RON):', data.balances.firma);
+            if (cash !== null && firma !== null) {
+                data.balances.cash = parseFloat(cash);
+                data.balances.firma = parseFloat(firma);
+                saveData();
+                updateUI();
+            }
+        }
+        
+        loadData();
+    </script>
+</body>
+</html>
