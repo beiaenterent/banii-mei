@@ -199,8 +199,10 @@
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
         
-        let data = {
-            balances: { cash: 0, firma: 0 },
+        let data = null;
+let dataLoaded = false;
+const DEFAULT_DATA = {
+    balances: { cash: 0, firma: 0 },
             transactions: [],
             subscriptions: [
                 { name: 'DIGI', amount: 67.11, day: 15, source: 'Cash' },
@@ -221,9 +223,20 @@
         // FIREBASE SYNC
         const dataRef = doc(db, 'users', 'default');
         
-        onSnapshot(dataRef, (snapshot) => {
-            if (snapshot.exists()) {
-                data = snapshot.data();
+        async function initData() {
+    const snapshot = await getDoc(dataRef);
+    if (snapshot.exists()) {
+        data = snapshot.data();
+        dataLoaded = true;
+    } else {
+        data = DEFAULT_DATA;
+        await setDoc(dataRef, data);
+    }
+    updateUI();
+    
+    onSnapshot(dataRef, (snap) => {
+        if (dataLoaded && snap.exists()) {
+            data = snap.data();
                 updateUI();
                 updateSyncStatus('✅ Sincronizat');
             } else {
